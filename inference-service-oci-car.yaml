@@ -1,0 +1,22 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: ramalama-oci-car
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+    openshift.io/display-name: RamaLama Gemma 4 E2B (OCI Modelcar)
+    opendatahub.io/model-type: generative
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/genai-asset: "true"
+    networking.kserve.io/visibility: exposed
+spec:
+  predictor:
+    model:
+      runtime: ramalama-cuda-runtime
+      modelFormat:
+        name: GGUF
+      storageUri: oci://quay.io/kugupta/gemma-4-e2b-q4km:car
+      resources:
+        limits:
+          nvidia.com/gpu: "1"

@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-gemma-gguf
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: downloader
+          image: registry.access.redhat.com/ubi9/ubi:latest
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              curl -L --progress-bar \
+                -o /mnt/models/google_gemma-4-E2B-it-Q4_K_M.gguf \
+                'https://huggingface.co/bartowski/google_gemma-4-E2B-it-GGUF/resolve/main/google_gemma-4-E2B-it-Q4_K_M.gguf' && \
+              ls -lh /mnt/models/
+          volumeMounts:
+            - name: model-storage
+              mountPath: /mnt/models
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: ramalama-models

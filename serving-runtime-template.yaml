@@ -1,0 +1,133 @@
+# Keep the ServingRuntime spec in sync with base/serving-runtime.yaml.
+# This Template wrapper is required for global RHOAI dashboard visibility
+# but cannot be managed by Kustomize.
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ramalama-cuda-runtime-template
+  annotations:
+    description: RamaLama CUDA ServingRuntime for GGUF models (llama.cpp on NVIDIA GPUs)
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/model-type: '["generative"]'
+    opendatahub.io/modelServingSupport: '["single"]'
+    openshift.io/display-name: RamaLama CUDA ServingRuntime for KServe
+    openshift.io/provider-display-name: RamaLama
+    tags: rhoai,kserve,servingruntime,gguf,llama-cpp,ramalama
+    template.openshift.io/documentation-url: https://github.com/containers/ramalama
+    template.openshift.io/long-description: >-
+      This template defines resources needed to deploy the RamaLama CUDA
+      ServingRuntime with KServe in Red Hat OpenShift AI. It uses llama-server
+      (llama.cpp) to serve GGUF models on NVIDIA GPUs via an OpenAI-compatible
+      REST API.
+  labels:
+    opendatahub.io/dashboard: "true"
+parameters:
+  - name: IMAGE
+    description: Container image for the serving runtime
+    value: quay.io/ramalama/cuda:latest
+  - name: LLAMA_NGL
+    description: Number of GPU layers to offload (999 = all)
+    value: "999"
+  - name: LLAMA_CTX_SIZE
+    description: Context window size in tokens
+    value: "4096"
+  - name: LLAMA_CACHE_REUSE
+    description: KV cache reuse slots for repeated prompt prefixes
+    value: "256"
+  - name: LLAMA_THREADS
+    description: CPU threads for non-GPU work
+    value: "4"
+  - name: LLAMA_REASONING_BUDGET
+    description: Thinking/reasoning token budget (0 = disabled)
+    value: "0"
+objects:
+  - apiVersion: serving.kserve.io/v1alpha1
+    kind: ServingRuntime
+    metadata:
+      name: ramalama-cuda-runtime
+      annotations:
+        opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+        opendatahub.io/apiProtocol: REST
+        opendatahub.io/template-name: ramalama-cuda-runtime
+        opendatahub.io/template-display-name: RamaLama CUDA ServingRuntime for KServe
+        openshift.io/display-name: RamaLama CUDA ServingRuntime for KServe
+      labels:
+        opendatahub.io/dashboard: "true"
+        opendatahub.io/template-name: ramalama-cuda-runtime
+    spec:
+      annotations:
+        opendatahub.io/kserve-runtime: llama-cpp
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+      multiModel: false
+      supportedModelFormats:
+        - name: GGUF
+          autoSelect: true
+        - name: vLLM
+          autoSelect: true
+      containers:
+        - name: kserve-container
+          image: ${IMAGE}
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              if [ -e /mnt/models/model.file ]; then
+                MODEL_PATH=/mnt/models/model.file
+              else
+                MODEL_PATH=$(ls /mnt/models/*.gguf /mnt/models/*/*.gguf 2>/dev/null | head -1)
+              fi
+              [ -z "$MODEL_PATH" ] && MODEL_PATH=/mnt/models
+              exec llama-server \
+                --host :: \
+                --port 8080 \
+                --model "$MODEL_PATH" \
+                -ngl ${LLAMA_NGL:-999} \
+                --ctx-size ${LLAMA_CTX_SIZE:-4096} \
+                --cache-reuse ${LLAMA_CACHE_REUSE:-256} \
+                --threads ${LLAMA_THREADS:-4} \
+                --reasoning-budget ${LLAMA_REASONING_BUDGET:-0} \
+                --no-webui
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 30
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: HOME
+              value: /tmp
+            - name: LLAMA_NGL
+              value: ${LLAMA_NGL}
+            - name: LLAMA_CTX_SIZE
+              value: ${LLAMA_CTX_SIZE}
+            - name: LLAMA_CACHE_REUSE
+              value: ${LLAMA_CACHE_REUSE}
+            - name: LLAMA_THREADS
+              value: ${LLAMA_THREADS}
+            - name: LLAMA_REASONING_BUDGET
+              value: ${LLAMA_REASONING_BUDGET}
