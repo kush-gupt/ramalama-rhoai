@@ -8,7 +8,7 @@ inference endpoint visible in the Gen AI Studio playground.
 
 ## Architecture
 
-Architecture diagram
+![Architecture diagram](architecture.png)
 
 ## Quickstart
 
