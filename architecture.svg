@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 988.7289999999999 682.3" width="988.7289999999999" height="682.3" style="--bg:#0d1117;--fg:#e6edf3;--line:#3d444d;--accent:#4493f8;--muted:#9198a1;background:var(--bg)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 988.7289999999999 682.3" width="988.7289999999999" height="682.3" style="--bg:#151515;--fg:#f2f2f2;--line:#707070;--accent:#ee0000;--muted:#a3a3a3;--surface:#292929;--border:#a60000;background:var(--bg)">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
-  text { font-family: 'Inter', system-ui, sans-serif; }
+  @import url('https://fonts.googleapis.com/css2?family=Red%20Hat%20Display:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Red Hat Display', system-ui, sans-serif; }
   svg {
     /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
     --_text:          var(--fg);
